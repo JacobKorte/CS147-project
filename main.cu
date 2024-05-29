@@ -13,6 +13,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h> // for timing the program later
+#include <string.h>
+
+void generatePassword(char* password, char* characterList, int length) {
+    
+    int numChar = strlen(characterList);
+    
+    srand(time(0));
+
+    for (int i = 0; i < length; ++i) {
+        // Get a random index from the characters string
+        int randomIndex = rand() % numChar;
+        // Append the character at the random index to the password
+        password[i] += characterList[randomIndex];
+    }
+}
 
 int main(int argc, char *argv[])
 {
