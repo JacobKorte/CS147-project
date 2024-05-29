@@ -37,6 +37,7 @@ void crack(char* validChars, int numValidChars, int pswdLen) {
 
     crack_kernel<<<gridSize, blockSize>>>(validChars, numValidChars, pswdLen);
 }
+
 __device__ void incrementIndex(int* index, int base) {
     int overflow = 1;
     for (int i = base - 1; i >= 0; --i){
