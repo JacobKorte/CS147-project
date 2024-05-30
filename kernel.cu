@@ -18,16 +18,31 @@ __device__ void numToIndex(int num, int numChars, int pswdLen, int* arr) {
 }
 
 __global__ void crack_kernel(char* validChars, int numValidChars, int pswdLen) {
-    int startingNum, endingNum;
-    startingNum = ;
+    int numThreads = BLOCK_SIZE * GRID_SIZE;
+    unsigned long long int totalPswds = pow(numValidChars, pswdLen);
+    int workPerThread = totalPswds / numThreads; // every thread should do AT LEAST this amt of work
+    int overhead = totalPswds % numThreads; // remaining amt of pswds that dont divide evenly
+
+    // calculate starting and ending numbers, convert to workable indexes
+    unsigned long long int startingNum, endingNum;
+    startingNum = (blockIdx.x * BLOCK_SIZE + threadIdx.x) * workPerThread;
+    endingNum = startingNum + workPerThread - 1;
 
     int* startingIndex, endingIndex;
     numToIndex(startingNum, numValidChars, pswdLen, startingIndex);
     numToIndex(endingNum, numValidChars, pswdLen, endingIndex);
     
+    // get to work
     while(false) { // replace condition later
         // create password
         // update index
+    }
+
+    // handle remainder passwords
+    if(blockIdx.x * BLOCK_SIZE + threadIdx.x < overhead)
+    {
+        // gen index
+        // create password
     }
 }
 
