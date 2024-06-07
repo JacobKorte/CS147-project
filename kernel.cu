@@ -2,7 +2,7 @@
 
 #define BLOCK_SIZE 1024
 #define GRID_SIZE 36
-
+__global__ bool isDone;
 // terrible implementation. 4 parameters, really-
 __device__ void numToIndex(int num, int numChars, int pswdLen, int* arr) {
     int iterator = pswdLen - 1;
@@ -17,7 +17,19 @@ __device__ void numToIndex(int num, int numChars, int pswdLen, int* arr) {
     }
 }
 
-__global__ void crack_kernel(char* validChars, int numValidChars, int pswdLen) {
+__device__ bool checkPassword(char* c1, char* c2, int pswdLen) 
+{
+    for(int i = 0; i < pswdLen; i++)  
+    {
+        if(c1[i] != c2[i]) 
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+__global__ void crack_kernel(char* validChars, int numValidChars, int pswdLen, char* password) {
     int numThreads = BLOCK_SIZE * GRID_SIZE;
     unsigned long long int totalPswds = pow(numValidChars, pswdLen);
     int workPerThread = totalPswds / numThreads; // every thread should do AT LEAST this amt of work
@@ -31,11 +43,19 @@ __global__ void crack_kernel(char* validChars, int numValidChars, int pswdLen) {
     int* startingIndex, endingIndex;
     numToIndex(startingNum, numValidChars, pswdLen, startingIndex);
     numToIndex(endingNum, numValidChars, pswdLen, endingIndex);
+
+    char p[pswdLen + 1];
+    p[pswdLen] = '\0';
     
     // get to work
-    while(false) { // replace condition later
+    while(startingNum < endingNum && !isDone) { // replace condition later
         // create password
+        createPasswordFromIndex(startingIndex, validChars, pswdLen, p);
+        //check if match
+        isDone =  checkPassword(p, password, pswdLen);
         // update index
+        startingNum++;
+        incrementIndex(startingIndex, numValidChars);
     }
 
     // handle remainder passwords
