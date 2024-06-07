@@ -1,38 +1,51 @@
-/* --------------------------------------------------------
+/* ------------------------------------------------------------------------------------------------
 
     USAGE
 
-    ./bruteforce 0 validCharString numValidChars passwordLength
-    ./bruteforce 1 0-3 passwordLength
-    
-    1st version: input your own characters (eg: abcd)
-    2nd version: pick a preset of characters (0-3)
+    ./bruteforce 0 0 validCharString numValidChars  passwordLength
+    ./bruteforce 0 1 validCharString numValidChars  passwordLength password
+    ./bruteforce 1 0 0-3             passwordLength
+    ./bruteforce 1 1 0-3             passwordLength password
 
---------------------------------------------------------- */
+    1st version: input your own characters (eg: abcd)
+    2nd version: ditto 1st, enter the password to find
+    3nd version: pick a preset of characters (0-3)
+        0: numbers
+        1: lowercase letters
+        2: base32
+        3: base64
+    4th version: ditto 3rd, enter the password to find
+
+------------------------------------------------------------------------------------------------ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h> // for timing the program later
 #include <string.h>
 
+// generates a RANDOM password
 void generatePassword(char* password, char* characterList, int length) {
     
     int numChar = strlen(characterList);
     
     srand(time(0));
 
-    for (int i = 0; i < length; ++i) {
+    int i;
+    for (i = 0; i < length; ++i) {
         // Get a random index from the characters string
         int randomIndex = rand() % numChar;
         // Append the character at the random index to the password
-        password[i] += characterList[randomIndex];
+        password[i] = characterList[randomIndex];
     }
+    password[i] = '\0'; // add null terminator
 }
 
 int main(int argc, char *argv[])
 {
     int runType = atoi(argv[1]);
+    int hasGivenPassword = atoi(argv[2]);
     char* validChars;
+    char* presetPassword; // the password to check against
     int numValidChars, pswdLen;
 
     // get valid characters + pswdLen
@@ -41,16 +54,16 @@ int main(int argc, char *argv[])
         case 0:
         {
             // custom character set
-            const char* str = argv[2];
-            numValidChars = atoi(argv[3]);
+            const char* str = argv[3];
+            numValidChars = atoi(argv[4]);
             for(int i = 0; i < numValidChars; i++) { validChars[i] = str[i]; }
-            pswdLen = atoi(argv[4]);
+            pswdLen = atoi(argv[5]);
             break;
         }
         case 1:
         {
-            int charSet = atoi(argv[2]);
-            pswdLen = atoi(argv[3]);
+            int charSet = atoi(argv[3]);
+            pswdLen = atoi(argv[4]);
             switch(charSet)
             {
                 case 0:
@@ -97,6 +110,29 @@ int main(int argc, char *argv[])
         default:
         {
             printf("unrecognized argument: run type should be a number 0-1");
+            exit(-1);
+            break;
+        }
+    }
+
+    switch(hasGivenPassword)
+    {
+        case 0:
+        {
+            // generate a random password
+            generatePassword(presetPassword, validChars, pswdLen);
+            break;
+        }
+        case 1:
+        {
+            // get the password from arguments (idx 6)
+            const char* argPswd = argv[6];
+            for(int i = 0; i < pswdLen; i++) { presetPassword[i] = argPswd[i]; }
+            break;
+        }
+        default:
+        {
+            printf("unrecognized argument: has preset password should be a number 0-1");
             exit(-1);
             break;
         }

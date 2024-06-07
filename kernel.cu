@@ -3,7 +3,10 @@
 #define BLOCK_SIZE 1024
 #define GRID_SIZE 36
 __global__ bool isDone;
-// terrible implementation. 4 parameters, really-
+
+                        // number to    number of     length of    the array
+                        // create       valid         password
+                        // index from   chars         (# indexes)
 __device__ void numToIndex(int num, int numChars, int pswdLen, int* arr) {
     int iterator = pswdLen - 1;
 
@@ -29,6 +32,8 @@ __device__ bool checkPassword(char* c1, char* c2, int pswdLen)
     return true;
 }
 
+                            // string of valid     number of valid    length of      password to
+                            // chars               chars              password       check against
 __global__ void crack_kernel(char* validChars, int numValidChars, int pswdLen, char* password) {
     int numThreads = BLOCK_SIZE * GRID_SIZE;
     unsigned long long int totalPswds = pow(numValidChars, pswdLen);
@@ -44,6 +49,7 @@ __global__ void crack_kernel(char* validChars, int numValidChars, int pswdLen, c
     numToIndex(startingNum, numValidChars, pswdLen, startingIndex);
     numToIndex(endingNum, numValidChars, pswdLen, endingIndex);
 
+    // where the created password is held
     char p[pswdLen + 1];
     p[pswdLen] = '\0';
     
@@ -52,17 +58,29 @@ __global__ void crack_kernel(char* validChars, int numValidChars, int pswdLen, c
         // create password
         createPasswordFromIndex(startingIndex, validChars, pswdLen, p);
         //check if match
-        isDone =  checkPassword(p, password, pswdLen);
+
+        if(checkPassword(p, password, pswdLen))
+            isDone = true;
+
         // update index
         startingNum++;
         incrementIndex(startingIndex, numValidChars);
     }
 
     // handle remainder passwords
-    if(blockIdx.x * BLOCK_SIZE + threadIdx.x < overhead)
+    if(!isDone && (blockIdx.x * BLOCK_SIZE + threadIdx.x < overhead))
     {
         // gen index
+        int passwordNum = GRID_SIZE * BLOCK_SIZE * workPerThread + (blockIdx.x * BLOCK_SIZE + threadIdx.x);
+        int* index;
+        numToIndex(passwordNum, numValidChars, pswdLen, startingIndex);
+
         // create password
+        createPasswordFromIndex(index, validChars, pswdLen, p);
+
+        if(checkPassword(p, password, pswdLen))
+            isDone = true;
+        
     }
 }
 
@@ -70,7 +88,13 @@ void crack(char* validChars, int numValidChars, int pswdLen) {
     dim3 blockSize (1024, 1, 1);
     dim3 gridSize (36, 1, 1);
 
-    crack_kernel<<<gridSize, blockSize>>>(validChars, numValidChars, pswdLen);
+    int iterator = pswdLen;
+    while(!isDone && iterator > 0)
+    {
+        // generate all the passwords of length pswdLen or less!
+        crack_kernel<<<gridSize, blockSize>>>(validChars, numValidChars, iterator);
+        iterator--;
+    }
 }
 
 __device__ void incrementIndex(int* index, int base) {
