@@ -13,7 +13,7 @@ __device__ bool printPasswords;
 __device__ void numToIndex(int num, int numChars, const int pswdLen, int* arr) { // int[]
     int iterator = pswdLen - 1;
 
-    if(blockIdx.x == 0 && threadIdx.x == 2) printf("making index from numToIndex (expect this backwards): ");
+    // if(blockIdx.x == 0 && threadIdx.x == 2) printf("making index from numToIndex (expect this backwards): ");
     while(iterator >= 0)
     {
         int val = num % numChars;
@@ -59,12 +59,9 @@ __device__ void createPasswordFromIndex(const int* index, const char* characterS
     int i = 0;
     
     for (i = i; i < pswdLen; i++) {
-        int num = index[i];
-        char character = characterSet[num]; // <<<<< --------------- SEEMS TO DIE HERE.
-        printf("%c", characterSet[num]);    
-        // password[i] = character;
+        password[i] = characterSet[index[i]];
     }
-    // password[i] = '\0';
+    password[i] = '\0';
 }
 
 
@@ -82,18 +79,12 @@ __global__ void crack_kernel(unsigned long long int totalPswds, char* validChars
     if(workPerThread == 0) { endingNum = 0; }
     else { endingNum = startingNum + workPerThread - 1; }
 
-    if(blockIdx.x == 0 && threadIdx.x == 0) { printf("printpasswords: %d\nnumThreads: %d\nwork/thread: %d\noverhead: %d\nstartingNum of 0,0: %llu, endingNum of 0,0: %llu\n", localPrintPasswords, numThreads, workPerThread, overhead, startingNum, endingNum); }
-
-    // int* startingIndex = (int*)malloc(pswdLen * sizeof(int));
-    // int* endingIndex = (int*)malloc(pswdLen * sizeof(int));
-
-    // int* startingIndex; cudaMalloc(&startingIndex, pswdLen * sizeof(char));
-    // int* endingIndex;   cudaMalloc(&endingIndex, pswdLen * sizeof(char));
+    // if(blockIdx.x == 0 && threadIdx.x == 0) { printf("printpasswords: %d\nnumThreads: %d\nwork/thread: %d\noverhead: %d\nstartingNum of 0,0: %llu, endingNum of 0,0: %llu\n", localPrintPasswords, numThreads, workPerThread, overhead, startingNum, endingNum); }
 
     int startingIndex[64];
     int endingIndex[64];
+
     // where the created password is held
-    // char* p = (char*)malloc((pswdLen + 1) * sizeof(char));
     char p[64];
 
     if(workPerThread > 0) // can skip if workPerThreads is 0 (ie: less pswds than threads working)
@@ -123,19 +114,18 @@ __global__ void crack_kernel(unsigned long long int totalPswds, char* validChars
     {
         // gen index
         int passwordNum = GRID_SIZE * BLOCK_SIZE * workPerThread + (blockIdx.x * BLOCK_SIZE + threadIdx.x);
-        // int* index = (int*)malloc(pswdLen * sizeof(int));
         int index[64];
 
         numToIndex(passwordNum, numValidChars, pswdLen, index);
 
         // DEBUG: print the damn index.
-        if(blockIdx.x == 0 && threadIdx.x == 2) { printf("index: "); for(int i = 0; i < pswdLen; i++) { printf("%d ", index[i]); } printf("\n"); }
+        // if(blockIdx.x == 0 && threadIdx.x == 2) { printf("index: "); for(int i = 0; i < pswdLen; i++) { printf("%d ", index[i]); } printf("\n"); }
 
         // create password
         createPasswordFromIndex(index, validChars, pswdLen, p);
 
-        if(blockIdx.x == 0 && threadIdx.x == 2) printf("finished making pswd from index in remainder pswds");
-        if(localPrintPasswords) printf("%s", p);
+        // if(blockIdx.x == 0 && threadIdx.x == 2) printf("finished making pswd from index in remainder pswds");
+        if(localPrintPasswords) printf("%s\n", p);
 
         if(checkPassword(p, password, pswdLen))
             isDone = true;
@@ -153,5 +143,6 @@ void crack(char* validChars, int numValidChars, const int pswdLen, char* passwor
     dim3 gridSize (36, 1, 1);
     unsigned long long int totalPswds = pow(numValidChars, pswdLen);
 
+    printf("launching the kernel from crack()\n");
     crack_kernel<<<gridSize, blockSize>>>(totalPswds, validChars, numValidChars, pswdLen, password, device_isDone, device_printPasswords);
 }

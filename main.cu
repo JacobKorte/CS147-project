@@ -50,6 +50,7 @@ int main(int argc, char *argv[])
 {
     char* validChars = (char*)malloc(256);
     char* presetPassword = (char*)malloc(256); // the password to check against
+    int presetPasswordLength;
 
     int arg = 1;
 
@@ -57,7 +58,7 @@ int main(int argc, char *argv[])
     int runType = atoi(argv[arg]); arg++;
     int numValidChars;
 
-    switch(runType)
+    switch(runType) // get valid chars
     {
         case 0: // pick preset
         {
@@ -125,14 +126,16 @@ int main(int argc, char *argv[])
         case 0: // generate a random password
         {
             generatePassword(presetPassword, validChars, pswdLen);
+            presetPasswordLength = pswdLen;
+
             break;
         }
         case 1: // get the password from arguments
         {
             const char* argPswd = argv[arg]; arg++;
-            int presetPswdLen = strlen(argPswd);
+            presetPasswordLength = strlen(argPswd);
 
-            for(int i = 0; i < presetPswdLen; i++) { presetPassword[i] = argPswd[i]; }
+            for(int i = 0; i < presetPasswordLength; i++) { presetPassword[i] = argPswd[i]; }            
             break;
         }
         default:
@@ -158,6 +161,12 @@ int main(int argc, char *argv[])
         }
     }
 
+    char* d_validChars;
+    char* d_presetPassword;
+    cudaMalloc((void**)&d_validChars,     numValidChars * sizeof(char));
+    cudaMalloc((void**)&d_presetPassword, presetPasswordLength * sizeof(char));
+    cudaMemcpy(d_validChars,     validChars,     numValidChars * sizeof(char),        cudaMemcpyHostToDevice);
+    cudaMemcpy(d_presetPassword, presetPassword, presetPasswordLength * sizeof(char), cudaMemcpyHostToDevice);
 
     // cool, free to do other stuff now
     bool h_isDone = false;
@@ -165,12 +174,11 @@ int main(int argc, char *argv[])
 
     int iterator = 1;
 
-    // while(!h_isDone && iterator <= pswdLen)
-    while(!h_isDone && iterator <= 1)
+    while(!h_isDone && iterator <= pswdLen)
     {
         printf("launching kernel w/ pswdLen of %d\n", iterator);
 
-        crack(validChars, numValidChars, pswdLen, presetPassword, printPswds, d_isDone, d_printPswds);
+        crack(d_validChars, numValidChars, iterator, d_presetPassword, printPswds, d_isDone, d_printPswds);
 
         cudaError_t cuda_ret = cudaDeviceSynchronize();
         if(cuda_ret != cudaSuccess) printf("Unable to launch kernel\n");
