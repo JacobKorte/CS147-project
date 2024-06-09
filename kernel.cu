@@ -95,7 +95,7 @@ __global__ void crack_kernel(unsigned long long int totalPswds, char* validChars
     {
         // gen index
         int passwordNum = GRID_SIZE * BLOCK_SIZE * workPerThread + (blockIdx.x * BLOCK_SIZE + threadIdx.x);
-        int* index;
+        int* index = (int*)malloc(pswdLen * sizeof(int));
         numToIndex(passwordNum, numValidChars, pswdLen, startingIndex);
 
         // create password
@@ -103,8 +103,13 @@ __global__ void crack_kernel(unsigned long long int totalPswds, char* validChars
 
         if(checkPassword(p, password, pswdLen))
             isDone = true;
+
+        free(index);
         
     }
+    free(startingIndex);  
+    free(endingIndex);  
+    free(p);  
 }
 
 void crack(char* validChars, int numValidChars, const int pswdLen, char* password) {
@@ -116,12 +121,19 @@ void crack(char* validChars, int numValidChars, const int pswdLen, char* passwor
     {
         totalPswds *= numValidChars; 
     }
+    bool host_isDone = false;
+    bool* device_isDone;
+    cudaMalloc(&device_isDone, sizeof(bool));
+    cudaMemcpy(device_isDone, &host_isDone, sizeof(bool), cudaMemcpyHostToDevice);
+
     int iterator = pswdLen;
-    while(!isDone && iterator > 0)
+    while(!host_isDone && iterator > 0)
     {
         // generate all the passwords of length pswdLen or less!
         crack_kernel<<<gridSize, blockSize>>>(totalPswds, validChars, numValidChars, iterator, password);
+        cudaMemcpy(&host_isDone, device_isDone, sizeof(bool), cudaMemcpyDeviceToHost);
         iterator--;
     }
+    cudaFree(device_isDone);
 }
 

@@ -44,8 +44,8 @@ int main(int argc, char *argv[])
 {
     int runType = atoi(argv[1]);
     int hasGivenPassword = atoi(argv[2]);
-    char* validChars;
-    char* presetPassword; // the password to check against
+    char* validChars = (char*)malloc(256);
+    char* presetPassword = (char*)malloc(256); // the password to check against
     int numValidChars, pswdLen;
 
     // get valid characters + pswdLen
