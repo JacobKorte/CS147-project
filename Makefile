@@ -1,5 +1,5 @@
 default:
-	nvcc main.cu kernel.cu
+	nvcc main.cu
 
 clean:
 	rm a.out
