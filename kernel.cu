@@ -4,8 +4,6 @@
 
 #define BLOCK_SIZE 1024
 #define GRID_SIZE 36
-__device__ bool isDone;
-__device__ bool printPasswords;
 
                         // number to    number of     length of    the array
                         // create       valid         password
@@ -13,7 +11,6 @@ __device__ bool printPasswords;
 __device__ void numToIndex(int num, int numChars, const int pswdLen, int* arr) { // int[]
     int iterator = pswdLen - 1;
 
-    // if(blockIdx.x == 0 && threadIdx.x == 2) printf("making index from numToIndex (expect this backwards): ");
     while(iterator >= 0)
     {
         int val = num % numChars;
@@ -21,14 +18,23 @@ __device__ void numToIndex(int num, int numChars, const int pswdLen, int* arr) {
 
         num /= numChars;
         iterator--;
-
-        if(blockIdx.x == 0 && threadIdx.x == 2) printf("%d ", val);
     }
-    if(blockIdx.x == 0 && threadIdx.x == 2) printf("\n");
 }
 
 __device__ bool checkPassword(char* c1, char* c2, const int pswdLen) 
 {
+    // doesnt work since strlen is a host() function... great
+    // int c1Len = strlen(c1);
+    // int c2Len = strlen(c2);
+
+    // get lengths of c1 and c2
+    int c1Len = 0;
+    int c2Len = 0;
+    for(int i = 0; c1[i] != '\0'; i++) { c1Len++; }
+    for(int i = 0; c2[i] != '\0'; i++) { c2Len++; }
+
+    if(c1Len != c2Len) return false;
+
     for(int i = 0; i < pswdLen; i++)  
     {
         if(c1[i] != c2[i]) 
@@ -79,8 +85,6 @@ __global__ void crack_kernel(unsigned long long int totalPswds, char* validChars
     if(workPerThread == 0) { endingNum = 0; }
     else { endingNum = startingNum + workPerThread - 1; }
 
-    // if(blockIdx.x == 0 && threadIdx.x == 0) { printf("printpasswords: %d\nnumThreads: %d\nwork/thread: %d\noverhead: %d\nstartingNum of 0,0: %llu, endingNum of 0,0: %llu\n", localPrintPasswords, numThreads, workPerThread, overhead, startingNum, endingNum); }
-
     int startingIndex[64];
     int endingIndex[64];
 
@@ -97,11 +101,11 @@ __global__ void crack_kernel(unsigned long long int totalPswds, char* validChars
             // create password
             createPasswordFromIndex(startingIndex, validChars, pswdLen, p);
             if(localPrintPasswords) printf("%s", p);
-            printf("%s\n", p);
 
             //check if match
-            if(checkPassword(p, password, pswdLen))
+            if(checkPassword(p, password, pswdLen)) {
                 *doneness = true;
+            }
 
             // update index
             startingNum++;
@@ -118,24 +122,16 @@ __global__ void crack_kernel(unsigned long long int totalPswds, char* validChars
 
         numToIndex(passwordNum, numValidChars, pswdLen, index);
 
-        // DEBUG: print the damn index.
-        // if(blockIdx.x == 0 && threadIdx.x == 2) { printf("index: "); for(int i = 0; i < pswdLen; i++) { printf("%d ", index[i]); } printf("\n"); }
-
         // create password
         createPasswordFromIndex(index, validChars, pswdLen, p);
 
-        // if(blockIdx.x == 0 && threadIdx.x == 2) printf("finished making pswd from index in remainder pswds");
         if(localPrintPasswords) printf("%s\n", p);
 
         if(checkPassword(p, password, pswdLen))
-            isDone = true;
-
-        // free(index);
-        
+        {
+            *doneness = true;
+        }
     }
-    // free(startingIndex);  
-    // free(endingIndex);  
-    // free(p);
 }
 
 void crack(char* validChars, int numValidChars, const int pswdLen, char* password, int printPasswords, bool* device_isDone, bool* device_printPasswords) {
