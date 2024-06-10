@@ -75,8 +75,8 @@ __device__ void createPasswordFromIndex(const int* index, const char* characterS
 __global__ void crack_kernel(unsigned long long int totalPswds, char* validChars, int numValidChars, const int pswdLen, char* password, bool* doneness, bool* printPasswords) {
     bool localPrintPasswords = *printPasswords; // put from global into a closer memory space
     int numThreads = BLOCK_SIZE * GRID_SIZE;
-    int workPerThread = totalPswds / numThreads; // every thread should do AT LEAST this amt of work
-    int overhead = totalPswds % numThreads; // remaining amt of pswds that dont divide evenly
+    unsigned long long int workPerThread = totalPswds / numThreads; // every thread should do AT LEAST this amt of work
+    unsigned long long int overhead = totalPswds % numThreads; // remaining amt of pswds that dont divide evenly
 
     // calculate starting and ending numbers, convert to workable indexes
     unsigned long long int startingNum, endingNum;
@@ -100,6 +100,18 @@ __global__ void crack_kernel(unsigned long long int totalPswds, char* validChars
             // create password
             createPasswordFromIndex(startingIndex, validChars, pswdLen, p);
             if(localPrintPasswords) printf("%s", p);
+
+            if(startingNum == 17999667186)
+            {
+                printf("hit num %llu\n", startingNum);
+                printf("index is: ");
+                for(int i = 0; i < pswdLen; i++)
+                {
+                    printf("%d ", startingIndex[i]);
+                }
+                printf("\n");
+                printf("pswd created is: %s", p);
+            }
 
             //check if match
             if(checkPassword(p, password, pswdLen)) {
