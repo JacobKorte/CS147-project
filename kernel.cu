@@ -5,15 +5,15 @@
 #define BLOCK_SIZE 1024
 #define GRID_SIZE 36
 
-                        // number to    number of     length of    the array
-                        // create       valid         password
-                        // index from   chars         (# indexes)
-__device__ void numToIndex(int num, int numChars, const int pswdLen, int* arr) { // int[]
+                        // number to            number of     length of    the array
+                        // create               valid         password
+                        // index from           chars         (# indexes)
+__device__ void numToIndex(unsigned long long int num, int numChars, const int pswdLen, int* arr) { // int[]
     int iterator = pswdLen - 1;
 
     while(iterator >= 0)
     {
-        int val = num % numChars;
+        unsigned long long int val = num % numChars;
         arr[iterator] = val;
 
         num /= numChars;
@@ -42,21 +42,20 @@ __device__ bool checkPassword(char* c1, char* c2, const int pswdLen)
             return false;
         }
     }
+
     return true;
 }
 
-__device__ void incrementIndex(int* index, int base) {
-    int overflow = 1;
-    for (int i = base - 1; i >= 0; --i){
-        index[i] += overflow;
-        if (index[i] >= base){
-            index[i] = 0;
-            overflow = 1;
-        } 
-        
-        else {
-            overflow = 0;
-            break;
+__device__ void incrementIndex(int* index, int pswdLen, int base) {
+    for(int i = pswdLen - 1; i >= 0; i--)
+    {
+        if(index[i] == (base - 1))
+        {
+            index[i] = 0; // overflowing
+        }
+        else
+        {
+            index[i] += 1; return; // not overflowing
         }
     }
 }
@@ -109,7 +108,7 @@ __global__ void crack_kernel(unsigned long long int totalPswds, char* validChars
 
             // update index
             startingNum++;
-            incrementIndex(startingIndex, numValidChars);
+            incrementIndex(startingIndex, pswdLen, numValidChars);
         }
     }
 
@@ -139,6 +138,5 @@ void crack(char* validChars, int numValidChars, const int pswdLen, char* passwor
     dim3 gridSize (36, 1, 1);
     unsigned long long int totalPswds = pow(numValidChars, pswdLen);
 
-    printf("launching the kernel from crack()\n");
     crack_kernel<<<gridSize, blockSize>>>(totalPswds, validChars, numValidChars, pswdLen, password, device_isDone, device_printPasswords);
 }
