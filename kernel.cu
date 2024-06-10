@@ -101,18 +101,6 @@ __global__ void crack_kernel(unsigned long long int totalPswds, char* validChars
             createPasswordFromIndex(startingIndex, validChars, pswdLen, p);
             if(localPrintPasswords) printf("%s", p);
 
-            if(startingNum == 17999667186)
-            {
-                printf("hit num %llu\n", startingNum);
-                printf("index is: ");
-                for(int i = 0; i < pswdLen; i++)
-                {
-                    printf("%d ", startingIndex[i]);
-                }
-                printf("\n");
-                printf("pswd created is: %s", p);
-            }
-
             //check if match
             if(checkPassword(p, password, pswdLen)) {
                 *doneness = true;
