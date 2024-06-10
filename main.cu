@@ -174,6 +174,12 @@ int main(int argc, char *argv[])
 
     int iterator = 1;
 
+    // clock_t start, h_foundPswdTime, end;
+    clock_t start, foundPswdTime;
+
+    start = foundPswdTime = 0;
+
+    start = clock();
     while(!h_isDone && iterator <= pswdLen)
     {
         printf("launching kernel w/ pswdLen of %d\n", iterator);
@@ -184,10 +190,22 @@ int main(int argc, char *argv[])
         if(cuda_ret != cudaSuccess) printf("Unable to launch kernel\n");
 
         cudaMemcpy(&h_isDone, d_isDone, sizeof(bool), cudaMemcpyDeviceToHost);
+        if(h_isDone) 
+        {
+            foundPswdTime = clock();
+            break;
+        }
 
         iterator++;        
     }
+    // end = clock();
 
+    double timeElapsed = ((double)(foundPswdTime - start)) / CLOCKS_PER_SEC;
+    printf("found pswd in %es\n", timeElapsed);
+    printf("start: %f, foundPswdTime: %f\n", (double)start, (double)foundPswdTime);
+
+    cudaFree(d_validChars);
+    cudaFree(d_presetPassword);
     cudaFree(d_isDone);
     cudaFree(d_printPswds);
 
