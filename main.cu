@@ -189,9 +189,11 @@ int main(int argc, char *argv[])
         cudaError_t cuda_ret = cudaDeviceSynchronize();
         if(cuda_ret != cudaSuccess) printf("Unable to launch kernel\n");
 
-        cudaMemcpy(&h_isDone, d_isDone, sizeof(bool), cudaMemcpyDeviceToHost);
-        if(h_isDone) 
+        cuda_ret = cudaMemcpy(&h_isDone, d_isDone, sizeof(bool), cudaMemcpyDeviceToHost);
+        if(cuda_ret != cudaSuccess) printf("failed to copy isDone from kernel\n");
+        if(h_isDone)
         {
+            printf("password was found.\n");
             foundPswdTime = clock();
             break;
         }
