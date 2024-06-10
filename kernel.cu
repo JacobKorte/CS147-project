@@ -45,9 +45,9 @@ __device__ bool checkPassword(char* c1, char* c2, const int pswdLen)
     return true;
 }
 
-__device__ void incrementIndex(int* index, int base) {
+__device__ void incrementIndex(int* index, int length, int base) {
     int overflow = 1;
-    for (int i = base - 1; i >= 0; --i){
+    for (int i = length - 1; i >= 0; --i){
         index[i] += overflow;
         if (index[i] >= base){
             index[i] = 0;
@@ -109,7 +109,7 @@ __global__ void crack_kernel(unsigned long long int totalPswds, char* validChars
 
             // update index
             startingNum++;
-            incrementIndex(startingIndex, numValidChars);
+            incrementIndex(startingIndex, pswdLen, numValidChars);
         }
     }
 
